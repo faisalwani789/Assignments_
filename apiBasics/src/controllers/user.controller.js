@@ -16,7 +16,7 @@ export const createUser = async (req, res) => {
 
 export const getUsers = async (req, res) => {
     try {
-        console.log(userData.indexOf(0))
+        // console.log(userData.indexOf(0))
         res.status(200).json({userData})
 
     } catch (error) {
