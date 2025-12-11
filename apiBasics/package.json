@@ -1,0 +1,16 @@
+{
+  "name": "assingment1",
+  "version": "1.0.0",
+  "description": "assignment 1 ",
+  "license": "ISC",
+  "author": "faisal",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
+  }
+}
