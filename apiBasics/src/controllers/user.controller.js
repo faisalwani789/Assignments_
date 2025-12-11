@@ -50,8 +50,6 @@ export const editUser = async (req, res) => {
 }
 export const deleteUser = async (req, res) => {
       const id = req.params.id
-      console.log(req.params.id)
-     
     try {
         const user = userData.findIndex(user => user.id === id)
         if(user===-1) return res.status(500).send("no used found")
