@@ -23,17 +23,22 @@ export const getUsers=async(req , res)=>{
         res.status(500).send(error.message)
     }
 }
-
-export const edit=async(req , res)=>{
-    try {
-        
+export const addRole=async(req,res)=>{
+    const{department,role}=req.body
+    const query='UPDATE userdata SET dept_id=? , role_id=?'
+     try {
+        const[result]=await pool.query(query,[])
     } catch (error) {
         res.status(500).send(error.message)
     }
 }
+
 export const updateUser=async(req , res)=>{
+    const{id,email,name}=req.body
+    const query='UPDATE userdata SET name=?, email=? WHERE id = ?'
     try {
-        
+        const[user]=await pool.query(query,[name,email,id])
+        res.status(200).json(user)
     } catch (error) {
         res.status(500).send(error.message)
     }
