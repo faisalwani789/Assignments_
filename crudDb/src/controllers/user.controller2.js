@@ -1,4 +1,5 @@
 import pool from "../config/db.config.js";
+import { deptRoleIds } from "../utils/deptRole.utils.js";
 
 export const addUser = async (req, res) => {
     const { name, email,role,department } = req.body
@@ -9,11 +10,8 @@ export const addUser = async (req, res) => {
         const[exists]=await pool.query('select id from userdata where email=?',[email])
         if(exists.length > 0) return res.status(400).send('user already exists')
 
-        const [dept] = await pool.query('select id from departments where department = ?', [department])
-        const [role_] = await pool.query('select id from roles where role = ?', [role])
-        // console.log(deptId[0].id)
-        const deptId=dept[0].id
-        const roleId=role_[0].id
+        const{deptId,roleId}=await deptRoleIds(department,role)
+        console.log(deptId)
         if(deptId.length == 0 || roleId.length===0){
             return res.status(400).send('enter a valid department & role')
         }
@@ -62,10 +60,13 @@ export const getUser=async(req,res)=>{
     }
 }
 export const updateUser = async (req, res) => {
-    const { id, email, name } = req.body
-    const query = 'UPDATE userdata SET name=?, email=? WHERE id = ?'
+    const { id, email, name,department,role } = req.body
+    //update roles and department table also
+    const query = 'UPDATE userdata SET name=?, email=?, dept_id=?, role_id=? WHERE id = ?'
+    
     try {
-        const [user] = await pool.query(query, [name, email, id])
+        const{deptId,roleId}=await deptRoleIds(department,role)
+        const [user] = await pool.query(query, [name, email,deptId,roleId, id])
         res.status(200).json(user)
     } catch (error) {
         res.status(500).send(error.message)
