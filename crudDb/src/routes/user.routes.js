@@ -1,13 +1,14 @@
 import { Router } from "express";
 // import { addUser,getUser,getUsers,editUser,deleteUser } from "../controllers/user.controller.js";
-import { addUser,getUsers,getUser,updateUser,blockUser } from "../controllers/user.controller2.js";
+import { upsertUser } from "../controllers/userController3.js";
 const router=Router()
 
-router.post('/',addUser)
-router.get('/',getUsers)
+router.post('/',upsertUser)
+// router.get('/',getUsers)
 // router.patch('/',addRole)
-router.get('/profile',getUser)
-router.put('/',updateUser)
-router.post('/block',blockUser)
+// router.get('/profile',getUser)
+// router.put('/',updateUser)
+// router.post('/block',blockUser)
+// router.post('/upsert',upsert)
 
 export default router
