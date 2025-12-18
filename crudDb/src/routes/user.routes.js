@@ -1,10 +1,10 @@
 import { Router } from "express";
 // import { addUser,getUser,getUsers,editUser,deleteUser } from "../controllers/user.controller.js";
-import { upsertUser } from "../controllers/userController3.js";
+import { upsertUser ,getUsers} from "../controllers/userController3.js";
 const router=Router()
 
 router.post('/',upsertUser)
-// router.get('/',getUsers)
+router.get('/',getUsers)
 // router.patch('/',addRole)
 // router.get('/profile',getUser)
 // router.put('/',updateUser)
