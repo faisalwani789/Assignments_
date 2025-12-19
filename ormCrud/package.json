@@ -1,5 +1,5 @@
 {
-  "name": "cruddb",
+  "name": "ormcrud",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,8 +11,14 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "@types/node": "^25.0.3",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "mysql2": "^3.15.3"
+    "mysql2": "^3.16.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.2.0"
   }
 }

@@ -18,3 +18,8 @@ log.txt
 .env
 .env.*
 *.env
+
+notes.md
+/src/generated/prisma
+
+/generated/prisma
