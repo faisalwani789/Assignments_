@@ -12,9 +12,75 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
 model User {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
+  id         Int      @id @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String   @unique
+  password   String
+  role       Role     @default(user)
+  createdAT  DateTime @default(now())
+  isActive   Boolean  @default(true)
+  teacher    Teacher?
+  student    Student?
 }
 
+enum Role {
+  user
+  student
+  teacher
+}
+
+model Teacher {
+  id                    Int                     @id @default(autoincrement())
+  user_id               Int                     @unique
+  joining_date          DateTime                @default(now())
+  user                  User                    @relation(fields: [user_id], references: [id])
+  teacherClasses        TeacherClasses[]
+  teacherClassesSubject TeacherClassesSubject[]
+}
+
+model TeacherClasses {
+  id         Int     @id @default(autoincrement())
+  class_id   Int
+  teacher_id Int
+  class      Class   @relation(fields: [class_id], references: [id])
+  teacher    Teacher @relation(fields: [teacher_id], references: [id])
+}
+
+model TeacherClassesSubject {
+  id         Int     @id @default(autoincrement())
+  teacherId Int @map("teacher_id")
+  class_id   Int
+  subject_id Int
+  teacher    Teacher @relation(fields: [teacherId], references: [id])
+  class      Class   @relation(fields: [class_id], references: [id])
+  subject    Subject @relation(fields: [subject_id], references: [id])
+}
+
+model Student {
+  id             Int      @id @default(autoincrement())
+  user_id        Int      @unique
+  Admission_date DateTime @default(now())
+  user           User     @relation(fields: [user_id], references: [id])
+  roll_no        Int
+  class_id       Int      @unique
+  class          Class    @relation(fields: [class_id], references: [id])
+}
+
+model Class {
+  id                    Int                     @id @default(autoincrement())
+  className             String
+  isActive              Boolean                 @default(true)
+  student               Student?
+  teacherClassesSubject TeacherClassesSubject[]
+  teacherClasses        TeacherClasses[]
+}
+
+model Subject {
+  id                    Int                     @id @default(autoincrement())
+  subjectName           String
+  isActive              Boolean                 @default(true)
+  teacherClassesSubject TeacherClassesSubject[]
+}
