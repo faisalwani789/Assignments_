@@ -48,15 +48,17 @@ model TeacherClasses {
   class      Class   @relation(fields: [class_id], references: [id])
   teacher    Teacher @relation(fields: [teacher_id], references: [id])
   teacherclassSubjects TeacherClassesSubject[]
+   @@unique([teacher_id, class_id])
 }
 
 model TeacherClassesSubject {
   id         Int     @id @default(autoincrement())
   teacherClassId Int
   subject_id Int
+  isActive  Boolean @default(true)
   teacher    TeacherClasses @relation(fields: [teacherClassId], references: [id],map: "fk_tcs_teacher_class")
   subject    Subject @relation(fields: [subject_id], references: [id],map:"fk_tcs_subject")
-
+  @@unique([teacherClassId,subject_id])
 }
 
 model Student {

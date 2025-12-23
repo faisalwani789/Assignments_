@@ -2,26 +2,26 @@
 import { prisma } from "../../lib/prisma.js"
 export const getUsers = async (req, res) => {
     try {
-        const users= await prisma.user.findMany({
-           include:{
-            student:true,
-            teacher:{
+        const users = await prisma.user.findMany({
+            include: {
+                student: true,
+                teacher: {
 
-                include:{
-                    teacherClasses:{
-                        include:{
-                            teacherclassSubjects:{
-                                include:{
-                                    subject:true
+                    include: {
+                        teacherClasses: {
+                            include: {
+                                teacherclassSubjects: {
+                                    include: {
+                                        subject: true
+                                    }
                                 }
                             }
                         }
-                    }
+                    },
+
                 },
-                
-            },
-        
-           } 
+
+            }
         })
         res.json(users)
     } catch (error) {
@@ -68,35 +68,80 @@ export const addUser = async (req, res) => {
             else {
                 const teacher = await prisma.teacher.findUnique({ where: { user_id: id } })
                 if (!teacher) res.status(400).send('teacher does not exist')
+
                 const teacherArr = []
-                const teacherClass=[]
-                const teacherSubjects=[]
-                    await prisma.teacherClasses.updateMany({
-                        where: { 
-                            teacher_id: teacher.id,
-                         },
-                        data:{
-                            isActive:false
-                        }
-                    })
-                    await prisma.teacherClasses.updateMany({
-                        where:{
-                            teacher_id:teacher.id,
-                            class_id:{in:[...teacherClass]}
+                const teacherClass = []
+                const teacherSubjects = []
+
+                await prisma.teacherClasses.updateMany({
+                    where: { teacher_id: teacher.id },
+                    data: { isActive: false }
+
+                })
+
+
+
+                const teacherClassIds = await prisma.teacherClasses.findMany({
+                    where: { teacher_id: teacher.id },
+                    select: { id: true }
+                })
+                console.log(JSON.stringify(teacherClassIds,null,2)+"ids")
+
+                console.log(teacherClassIds+"cls")
+                if (teacherClassIds.length) {
+                    await prisma.teacherClassesSubject.updateMany({
+                        where: {
+                            teacherClassId: {
+                                in: teacherClassIds.map(tc => tc.id)
+                            }
                         },
-                        data:{
-                            isActive:true
+                        data: { isActive: false }
+                    })
+                }
+
+              
+
+
+                for (const tcr of classes|| []) {
+                    const TrClassId = await prisma.teacherClasses.upsert({
+                        where: {
+                            teacher_id_class_id: {
+                                teacher_id: teacher.id,
+                                class_id: tcr.class_id
+                            }
+
+                        },
+                        update: {
+                            isActive: true
+                        },
+                        create: {
+                            teacher_id: teacher.id,
+                            class_id: tcr.class_id
                         }
                     })
 
-                     await prisma.teacherClasses.createMany({
-                            //add if not available
-                            data:teacherClass.map(x=>({teacher_id:teacher.id,class_id:x,isActive:true})),
-                            skipDuplicates:true
-                        })
+                    for(const sub of tcr.subjects|| []){
+                       await prisma.teacherClassesSubject.upsert({
+                            where: {
+                                teacherClassId_subject_id: {
+                                    teacherClassId: TrClassId.id,
+                                    subject_id: sub
+                                }
 
-                    return res.status(201).json({ message: "teacher updated successfully" })
+                            },
+                            update: {
+                                isActive: true
+                            },
+                            create: {
+                                teacherClassId: TrClassId.id,
+                                subject_id: sub
+                            }
+                        })
+                    }
                 }
+
+                return res.status(201).json({ message: "teacher updated successfully" })
+            }
         }
 
         else {
@@ -147,56 +192,56 @@ export const addUser = async (req, res) => {
 
                     if (req.body?.classes) {
                         //add subject class details to teacher
-                    //     const teacherArr = []
-                    //     const teacherClass=[]
-                    //     const teacherSubs=[]
+                        //     const teacherArr = []
+                        //     const teacherClass=[]
+                        //     const teacherSubs=[]
 
-                      
-                    //      for(const cx of classes){
-                    //     teacherClass.push({teacher_id:newTeacher.id,class_id:cx.class_id})
-                    // }
-                    //     for (const cx of classes) {
-                    //         const { class_id, subjects } = cx
-                    //         for (const subject_id of subjects) {
-                    //             teacherSubs.push({
-                    //                 teacher_id:newTeacher.id,
-                    //                 subject_id:subject_id
-                    //             })
-                    //             teacherArr.push({
-                    //                 teacherId:newTeacher.id,
-                    //                 class_id: class_id,
-                    //                 subject_id: subject_id
-                    //             })
-                    //         }
-                    //     }
+
+                        //      for(const cx of classes){
+                        //     teacherClass.push({teacher_id:newTeacher.id,class_id:cx.class_id})
+                        // }
+                        //     for (const cx of classes) {
+                        //         const { class_id, subjects } = cx
+                        //         for (const subject_id of subjects) {
+                        //             teacherSubs.push({
+                        //                 teacher_id:newTeacher.id,
+                        //                 subject_id:subject_id
+                        //             })
+                        //             teacherArr.push({
+                        //                 teacherId:newTeacher.id,
+                        //                 class_id: class_id,
+                        //                 subject_id: subject_id
+                        //             })
+                        //         }
+                        //     }
                         // console.log(teacherArr)
 
 
-                        for(const tcr of classes){
+                        for (const tcr of classes) {
                             console.log(tcr.class_id)
-                            const TrClassId= await tx.teacherClasses.create({
-                                data:{
-                                   teacher:{
-                                    connect:{
-                                        id:newTeacher.id
+                            const TrClassId = await tx.teacherClasses.create({
+                                data: {
+                                    teacher: {
+                                        connect: {
+                                            id: newTeacher.id
+                                        }
+                                    },
+                                    class: {
+                                        connect: {
+                                            id: tcr.class_id
+                                        }
                                     }
-                                   },
-                                   class:{
-                                    connect:{
-                                        id:tcr.class_id
-                                    }
-                                   }
                                 }
-                             })
+                            })
                             //  console.log(tcr.subjects)
                             //  console.log(tcr)
                             //  console.log(typeof(tcr.subjects))
-                             //bulk insert subjects
-                             await tx.teacherClassesSubject.createMany({
-                                data:tcr?.subjects.map(sub=>({teacherClassId:TrClassId.id,subject_id:sub}))
-                             })
-                           
-                            
+                            //bulk insert subjects
+                            await tx.teacherClassesSubject.createMany({
+                                data: tcr?.subjects.map(sub => ({ teacherClassId: TrClassId.id, subject_id: sub }))
+                            })
+
+
                             //  await tx.teacherClassesSubject.create({
                             //     data:{
                             //         teacherClassId:TrClassId.id,
@@ -204,8 +249,8 @@ export const addUser = async (req, res) => {
                             //     }
                             //  })
                         }
-                       
-                        
+
+
                         // return res.json(teacherArr)
                         // const TchClasses = await tx.teacherClasses.createMany({
                         //     data: teacherArr
@@ -231,12 +276,13 @@ export const addUser = async (req, res) => {
     }
 }
 
-export const getUser=async(req,res)=>{
-    const{id}=req.body
+
+export const getUser = async (req, res) => {
+    const { id } = req.body
     try {
-         const user = await prisma.user.findUnique({
-            where:{
-                id:id
+        const user = await prisma.user.findUnique({
+            where: {
+                id: id
             },
             include: {
                 student: true,
@@ -245,6 +291,6 @@ export const getUser=async(req,res)=>{
         });
         res.json(user)
     } catch (error) {
-         res.status(500).send(error.message)
+        res.status(500).send(error.message)
     }
 }
