@@ -1,26 +1,60 @@
 
 import { prisma } from "../../lib/prisma.js"
+import bcrypt from 'bcrypt'
 export const getUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany({
-            include: {
-                student: true,
+            where: {
                 teacher: {
-
-                    include: {
+                    teacherClasses: {
+                        some: {
+                            isActive: true
+                        }
+                    }
+                }
+            },
+            select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                teacher: {
+                    select: {
                         teacherClasses: {
-                            include: {
+                            where: {
+                                isActive: true,
                                 teacherclassSubjects: {
-                                    include: {
-                                        subject: true
+                                    some: {
+                                        isActive: true
+                                    }
+                                }
+                            },
+                            select: {
+                                id: true,
+                                class: {
+                                    select: {
+                                        id: true,
+                                        className: true
+                                    }
+                                },
+                                teacherclassSubjects: {
+                                    where: {
+                                        isActive: true
+                                    },
+                                    select: {
+                                        id: true,
+                                        subject: {
+                                            select: {
+                                                id: true,
+                                                subjectName: true
+                                            }
+                                        }
                                     }
                                 }
                             }
+
                         }
-                    },
-
-                },
-
+                    }
+                }
             }
         })
         res.json(users)
@@ -28,104 +62,84 @@ export const getUsers = async (req, res) => {
         res.send(error.message)
     }
 }
+
 export const addUser = async (req, res) => {
     const { id, first_name, last_name, email, role, password, roll_no, class_id, classes } = req.body
     try {
-        if (req.body?.id) {
-            //update user
-            const user = await prisma.user.findUnique({ where: { id: id } })
-            if (!user) return res.status(400).send('user does not exist')
-            const updateUser = await prisma.user.update({
-                where: { id: id },
-                data: {
-                    first_name: first_name,
-                    last_name: last_name,
-                    email: email,
-                    password: password
-                },
-                select: {
-                    role: true,
-                    id: true
-                }
-            })
+        await prisma.$transaction(async (tx) => {
+            if (req.body?.id) {
 
-            // return res.status(200).json({result,message:"user updated successfully"})
-            if (updateUser.role === "student") {
-                const studet = await prisma.student.findUnique({ where: { user_id: id } })
-                if (!studet) return res.status(400).send('student does not exist')
-                const updateStudent = await prisma.student.update({
-                    where: { user_id: id },
+                //update user
+                const user = await tx.user.findUnique({ where: { id: id } })
+                if (!user) return res.status(400).send('user does not exist')
+
+
+                const updateUser = await tx.user.update({
+                    where: { id: id },
                     data: {
-                        class_id: class_id,
-                        roll_no: roll_no
+                        first_name: first_name,
+                        last_name: last_name,
+                        email: email,
+
                     },
                     select: {
-                        roll_no
+                        role: true,
+                        id: true
                     }
                 })
-                return res.status(201).json({ message: "student updated successfully" })
-            }
-            else {
-                const teacher = await prisma.teacher.findUnique({ where: { user_id: id } })
-                if (!teacher) res.status(400).send('teacher does not exist')
 
-                const teacherArr = []
-                const teacherClass = []
-                const teacherSubjects = []
-
-                await prisma.teacherClasses.updateMany({
-                    where: { teacher_id: teacher.id },
-                    data: { isActive: false }
-
-                })
-
-
-
-                const teacherClassIds = await prisma.teacherClasses.findMany({
-                    where: { teacher_id: teacher.id },
-                    select: { id: true }
-                })
-                console.log(JSON.stringify(teacherClassIds,null,2)+"ids")
-
-                console.log(teacherClassIds+"cls")
-                if (teacherClassIds.length) {
-                    await prisma.teacherClassesSubject.updateMany({
-                        where: {
-                            teacherClassId: {
-                                in: teacherClassIds.map(tc => tc.id)
-                            }
+                if (updateUser.role === "student") {
+                    const studet = await tx.student.findUnique({ where: { user_id: id } })
+                    if (!studet) return res.status(400).send('student does not exist')
+                    const updateStudent = await tx.student.update({
+                        where: { user_id: id },
+                        data: {
+                            class_id: class_id,
+                            roll_no: roll_no
                         },
-                        data: { isActive: false }
-                    })
-                }
-
-              
-
-
-                for (const tcr of classes|| []) {
-                    const TrClassId = await prisma.teacherClasses.upsert({
-                        where: {
-                            teacher_id_class_id: {
-                                teacher_id: teacher.id,
-                                class_id: tcr.class_id
-                            }
-
-                        },
-                        update: {
-                            isActive: true
-                        },
-                        create: {
-                            teacher_id: teacher.id,
-                            class_id: tcr.class_id
+                        select: {
+                            roll_no
                         }
                     })
+                    return res.status(201).json({ message: "student updated successfully" })
+                }
+                else {
+                    const teacher = await tx.teacher.findUnique({ where: { user_id: id } })
+                    if (!teacher) res.status(400).send('teacher does not exist')
 
-                    for(const sub of tcr.subjects|| []){
-                       await prisma.teacherClassesSubject.upsert({
+
+                    await tx.teacherClasses.updateMany({
+                        where: { teacher_id: teacher.id },
+                        data: { isActive: false }
+
+                    })
+
+                    const teacherClassIds = await tx.teacherClasses.findMany({
+                        where: { teacher_id: teacher.id },
+                        select: { id: true }
+                    })
+
+
+                    if (teacherClassIds.length) {
+                        await tx.teacherClassesSubject.updateMany({
                             where: {
-                                teacherClassId_subject_id: {
-                                    teacherClassId: TrClassId.id,
-                                    subject_id: sub
+                                teacherClassId: {
+                                    in: teacherClassIds.map(tc => tc.id)
+                                }
+                            },
+                            data: { isActive: false }
+                        })
+                    }
+
+
+
+
+                    for (const tcr of classes || []) {
+                        const TrClassId = await tx.teacherClasses.upsert({
+                            where: {
+                                teacher_id_class_id: {
+                                    teacher_id: teacher.id,
+                                    class_id: tcr.class_id
                                 }
 
                             },
@@ -133,29 +147,48 @@ export const addUser = async (req, res) => {
                                 isActive: true
                             },
                             create: {
-                                teacherClassId: TrClassId.id,
-                                subject_id: sub
+                                teacher_id: teacher.id,
+                                class_id: tcr.class_id
                             }
                         })
+
+                        for (const sub of tcr.subjects || []) {
+                            await tx.teacherClassesSubject.upsert({
+                                where: {
+                                    teacherClassId_subject_id: {
+                                        teacherClassId: TrClassId.id,
+                                        subject_id: sub
+                                    }
+
+                                },
+                                update: {
+                                    isActive: true
+                                },
+                                create: {
+                                    teacherClassId: TrClassId.id,
+                                    subject_id: sub
+                                }
+                            })
+                        }
                     }
+
+                    return res.status(201).json({ message: "teacher updated successfully" })
                 }
-
-                return res.status(201).json({ message: "teacher updated successfully" })
             }
-        }
 
-        else {
-            //create user
-            await prisma.$transaction(async (tx) => {
+            else {
+                //create user
+
                 const user = await tx.user.findUnique({ where: { email: email } })
                 if (user) return res.status(400).send('user already exists')
+                const passwordHash = await bcrypt.hash(password, 10)
                 const newUser = await tx.user.create({
                     data: {
                         first_name: first_name,
                         last_name: last_name,
                         email: email,
                         role: role,
-                        password: password
+                        password: passwordHash
                     },
                     select: {
                         id: true,
@@ -191,32 +224,6 @@ export const addUser = async (req, res) => {
                     })
 
                     if (req.body?.classes) {
-                        //add subject class details to teacher
-                        //     const teacherArr = []
-                        //     const teacherClass=[]
-                        //     const teacherSubs=[]
-
-
-                        //      for(const cx of classes){
-                        //     teacherClass.push({teacher_id:newTeacher.id,class_id:cx.class_id})
-                        // }
-                        //     for (const cx of classes) {
-                        //         const { class_id, subjects } = cx
-                        //         for (const subject_id of subjects) {
-                        //             teacherSubs.push({
-                        //                 teacher_id:newTeacher.id,
-                        //                 subject_id:subject_id
-                        //             })
-                        //             teacherArr.push({
-                        //                 teacherId:newTeacher.id,
-                        //                 class_id: class_id,
-                        //                 subject_id: subject_id
-                        //             })
-                        //         }
-                        //     }
-                        // console.log(teacherArr)
-
-
                         for (const tcr of classes) {
                             console.log(tcr.class_id)
                             const TrClassId = await tx.teacherClasses.create({
@@ -233,43 +240,18 @@ export const addUser = async (req, res) => {
                                     }
                                 }
                             })
-                            //  console.log(tcr.subjects)
-                            //  console.log(tcr)
-                            //  console.log(typeof(tcr.subjects))
-                            //bulk insert subjects
                             await tx.teacherClassesSubject.createMany({
                                 data: tcr?.subjects.map(sub => ({ teacherClassId: TrClassId.id, subject_id: sub }))
                             })
-
-
-                            //  await tx.teacherClassesSubject.create({
-                            //     data:{
-                            //         teacherClassId:TrClassId.id,
-                            //         subject_id:tcr.subject_id
-                            //     }
-                            //  })
                         }
-
-
-                        // return res.json(teacherArr)
-                        // const TchClasses = await tx.teacherClasses.createMany({
-                        //     data: teacherArr
-                        // })
-                        // const findTchClasses=await tx.teacherClasses.findMany({
-                        //     where:{teacher_id:newTeacher.id},select:{id:true}
-                        // })
-                        //multiple insert fails as we need to map subjectIs with trClassId
-
                         return res.status(201).json({ msg: 'teacher added successfully with subjects', })
                     }
 
                     res.status(201).send('teacher added successfully without subjects')
                 }
 
-
-            })
-        }
-
+            }
+        })
     } catch (error) {
         console.log(error)
         res.status(500).send(error.message)
@@ -294,3 +276,5 @@ export const getUser = async (req, res) => {
         res.status(500).send(error.message)
     }
 }
+
+
