@@ -1,21 +1,17 @@
-/*
-  Warnings:
+-- CreateTable
+CREATE TABLE `User` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `first_name` VARCHAR(191) NOT NULL,
+    `last_name` VARCHAR(191) NOT NULL,
+    `email` VARCHAR(191) NOT NULL,
+    `password` VARCHAR(191) NOT NULL,
+    `role` ENUM('user', 'student', 'teacher') NOT NULL DEFAULT 'user',
+    `createdAT` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
 
-  - You are about to drop the column `name` on the `user` table. All the data in the column will be lost.
-  - Added the required column `first_name` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `isAcive` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `last_name` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `password` to the `User` table without a default value. This is not possible if the table is not empty.
-
-*/
--- AlterTable
-ALTER TABLE `user` DROP COLUMN `name`,
-    ADD COLUMN `createdAT` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    ADD COLUMN `first_name` VARCHAR(191) NOT NULL,
-    ADD COLUMN `isAcive` BOOLEAN NOT NULL,
-    ADD COLUMN `last_name` VARCHAR(191) NOT NULL,
-    ADD COLUMN `password` VARCHAR(191) NOT NULL,
-    ADD COLUMN `role` ENUM('user', 'student', 'teacher') NOT NULL DEFAULT 'user';
+    UNIQUE INDEX `User_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Teacher` (
@@ -31,19 +27,19 @@ CREATE TABLE `Teacher` (
 CREATE TABLE `TeacherClasses` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `class_id` INTEGER NOT NULL,
+    `teacher_id` INTEGER NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
 
-    UNIQUE INDEX `TeacherClasses_class_id_key`(`class_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `TeacherClassesSubject` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `teacherId` INTEGER NOT NULL,
     `class_id` INTEGER NOT NULL,
     `subject_id` INTEGER NOT NULL,
 
-    UNIQUE INDEX `TeacherClassesSubject_class_id_key`(`class_id`),
-    UNIQUE INDEX `TeacherClassesSubject_subject_id_key`(`subject_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -85,10 +81,16 @@ ALTER TABLE `Teacher` ADD CONSTRAINT `Teacher_user_id_fkey` FOREIGN KEY (`user_i
 ALTER TABLE `TeacherClasses` ADD CONSTRAINT `TeacherClasses_class_id_fkey` FOREIGN KEY (`class_id`) REFERENCES `Class`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `TeacherClassesSubject` ADD CONSTRAINT `TeacherClassesSubject_class_id_fkey` FOREIGN KEY (`class_id`) REFERENCES `Class`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `TeacherClasses` ADD CONSTRAINT `TeacherClasses_teacher_id_fkey` FOREIGN KEY (`teacher_id`) REFERENCES `Teacher`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `TeacherClassesSubject` ADD CONSTRAINT `TeacherClassesSubject_subject_id_fkey` FOREIGN KEY (`subject_id`) REFERENCES `Subject`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `TeacherClassesSubject` ADD CONSTRAINT `fk_tcs_teacher` FOREIGN KEY (`teacherId`) REFERENCES `Teacher`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `TeacherClassesSubject` ADD CONSTRAINT `fk_tcs_class` FOREIGN KEY (`class_id`) REFERENCES `Class`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `TeacherClassesSubject` ADD CONSTRAINT `fk_tcs_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subject`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Student` ADD CONSTRAINT `Student_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

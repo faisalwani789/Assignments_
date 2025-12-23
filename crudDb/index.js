@@ -4,7 +4,7 @@ import userRouter from './src/routes/user.routes.js'
 import roleRouter from './src/routes/roles.routes.js'
 import studentRouter from './src/routes/student.routes.js'
 import teacherRouter from './src/routes/teacher.routes.js'
-import 
+
 const app=express()
 
 configDotenv()

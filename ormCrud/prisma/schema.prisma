@@ -36,27 +36,27 @@ model Teacher {
   id                    Int                     @id @default(autoincrement())
   user_id               Int                     @unique
   joining_date          DateTime                @default(now())
-  user                  User                    @relation(fields: [user_id], references: [id])
+  user                  User                    @relation(fields: [user_id], references: [id],map: "fk_user")
   teacherClasses        TeacherClasses[]
-  teacherClassesSubject TeacherClassesSubject[]
 }
 
 model TeacherClasses {
   id         Int     @id @default(autoincrement())
   class_id   Int
   teacher_id Int
+  isActive  Boolean @default(true)
   class      Class   @relation(fields: [class_id], references: [id])
   teacher    Teacher @relation(fields: [teacher_id], references: [id])
+  teacherclassSubjects TeacherClassesSubject[]
 }
 
 model TeacherClassesSubject {
   id         Int     @id @default(autoincrement())
-  teacherId Int @map("teacher_id")
-  class_id   Int
+  teacherClassId Int
   subject_id Int
-  teacher    Teacher @relation(fields: [teacherId], references: [id])
-  class      Class   @relation(fields: [class_id], references: [id])
-  subject    Subject @relation(fields: [subject_id], references: [id])
+  teacher    TeacherClasses @relation(fields: [teacherClassId], references: [id],map: "fk_tcs_teacher_class")
+  subject    Subject @relation(fields: [subject_id], references: [id],map:"fk_tcs_subject")
+
 }
 
 model Student {
@@ -74,7 +74,6 @@ model Class {
   className             String
   isActive              Boolean                 @default(true)
   student               Student?
-  teacherClassesSubject TeacherClassesSubject[]
   teacherClasses        TeacherClasses[]
 }
 
@@ -83,4 +82,13 @@ model Subject {
   subjectName           String
   isActive              Boolean                 @default(true)
   teacherClassesSubject TeacherClassesSubject[]
+  teacherSubject TeacherSubject[]
+}
+model TeacherSubject{
+   id         Int  @id @default(autoincrement())
+  teacher_id Int
+  subject_id Int
+  isActive  Boolean @default(true)
+  subject      Subject   @relation(fields: [subject_id], references: [id])
+  
 }
